@@ -1,0 +1,96 @@
+# This software is available to you under a choice of one of two
+# licenses.  You may choose to be licensed under the terms of the GNU
+# General Public License (GPL) Version 2, available from the file
+# COPYING in the main directory of this source tree, or the
+# BSD license below:
+#
+#     Redistribution and use in source and binary forms, with or
+#     without modification, are permitted provided that the following
+#     conditions are met:
+#
+#      - Redistributions of source code must retain the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer.
+#
+#      - Redistributions in binary form must reproduce the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer in the documentation and/or other materials
+#        provided with the distribution.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+Name: libusnic_verbs
+
+%define _bindir /opt/cisco/usnic/bin
+%{?usnic_home: %define _bindir %{usnic_home}/bin}
+
+# Version magic
+%define version_a @USNIC_VERSION@.%{usnic_release}
+%{!?usnic_release: %define usnic_release %{expand:%(echo $USER)}_%{expand:%(date +%Y%m%d_%H%M)}}
+%{?usnic_version: %define version_a %{usnic_version}}
+%define srpm_version @USNIC_WHOLE_VERSION@
+
+# Enable valgrind?
+%define config_valgrind --without-valgrind
+%define version_b %{version_a}
+%{?valgrind: %define config_valgrind --with-valgrind=%valgrind}
+%{?valgrind: %define version_b %{version_a}_vg}
+
+Version: %{version_b}
+Release: @RPM_RELEASE@
+Vendor: Cisco Systems, Inc.
+
+Summary: Cisco Virtual NIC OpenFabrics Userspace Driver
+
+Group: System Environment/Libraries
+License: GPLv2 or BSD
+Url: http://cisco.com/
+Source: http://github.com/.../libusnic_verbs-@USNIC_WHOLE_VERSION@.tar.gz
+BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}=%{release}-XXXXXX)
+
+BuildRequires: libibverbs-devel >= 1.1.5
+
+
+%description
+libusnic_verbs provides a device-specific userspace driver for Cisco
+Virtual NICs for use with the libibverbs library. This package also
+includes an usnic_udp_pingpong modified from ibv_ud_pingpong that works
+with libusnic_verbs.
+
+%prep
+%setup -q -n %{name}-%{srpm_version}
+
+%build
+%configure --with-release=%{usnic_release} %{config_valgrind}
+make %{?_smp_mflags}
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make DESTDIR=%{buildroot} install
+# remove unpackaged files from the buildroot
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la $RPM_BUILD_ROOT%{_libdir}/libusnic_verbs.so
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root,-)
+%{_libdir}/libusnic_verbs-rdmav2.so
+%{_sysconfdir}/libibverbs.d/usnic.driver
+%{_bindir}/usnic_udp_pingpong
+%doc AUTHORS COPYING README KNOWN_ISSUES
+
+
+%changelog
+* Wed Mar 12 2014 Xuyang Wang <xuywang@cisco.com>
+- Added usnic_udp_pingpong
+
+* Tue Apr  9 2013 Jeff Squyres <jsquyres@cisco.com>
+- First release
