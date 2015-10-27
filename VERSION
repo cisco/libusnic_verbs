@@ -1,13 +1,4 @@
-# Copyright (c) 2013 Cisco Systems, Inc.  All rights reserved.
+# Copyright (c) 2015 Cisco Systems, Inc.  All rights reserved.
 
-# This is the VERSION file for libusnic, describing the precise
-# version of libusnic in this distribution.  The various components of
-# the version number below are combined to form a single version
-# number string.
-
-# This is the version string.
-
-USNIC_VERSION=2.0.0
-
-# Use this if the RPM needs repackaging with no USNIC version change
-RPM_RELEASE=1
+# If set, use this specific Git ID for the release package
+# GIT_ID=blah

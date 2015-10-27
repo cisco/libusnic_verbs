@@ -28,17 +28,8 @@
 
 Name: libusnic_verbs
 
-%define _bindir /opt/cisco/usnic/bin
-%{?usnic_home: %define _bindir %{usnic_home}/bin}
-
-# Version magic
-%define version_a @USNIC_VERSION@.%{usnic_release}
-%{!?usnic_release: %define usnic_release %{expand:%(echo $USER)}_%{expand:%(date +%Y%m%d_%H%M)}}
-%{?usnic_version: %define version_a %{usnic_version}}
-%define srpm_version @USNIC_WHOLE_VERSION@
-
-Version: %{version_b}
-Release: @RPM_RELEASE@
+Version: @LIBUSNIC_VERBS_VERSION@
+Release: 1
 Vendor: Cisco Systems, Inc.
 
 Summary: No-op libibverbs driver for the Cisco usNIC device (you should use libfabric instead)
@@ -46,7 +37,7 @@ Summary: No-op libibverbs driver for the Cisco usNIC device (you should use libf
 Group: System Environment/Libraries
 License: GPLv2 or BSD
 Url: http://cisco.com/
-Source: libusnic_verbs-%{usnic_version}.tar.bz2
+Source: libusnic_verbs-%{version}.tar.bz2
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}=%{release}-XXXXXX)
 
 BuildRequires: libibverbs-devel >= 1.1.5
@@ -64,10 +55,10 @@ devices.  The Libfabric API is provided for accessing Cisco usNIC
 functionality (see http://libfabric.org/).
 
 %prep
-%setup -q -n %{name}-%{srpm_version}
+%setup -q -n %{name}-%{version}
 
 %build
-%configure --with-release=%{usnic_release} %{config_valgrind}
+%configure
 make %{?_smp_mflags}
 
 %install
@@ -83,7 +74,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_libdir}/libusnic_verbs-rdmav2.so
 %{_sysconfdir}/libibverbs.d/usnic.driver
-%doc AUTHORS COPYING README KNOWN_ISSUES
+%doc AUTHORS LICENSE README
 
 
 %changelog

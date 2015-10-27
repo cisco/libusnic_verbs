@@ -1,0 +1,117 @@
+#!/usr/bin/env perl
+#
+# Cisco libusnic_verbs package builder script for release engineering
+#
+# This script makes Debian packages, and understands the following OSs:
+# Ubuntu 14.04.2 LTS
+#
+
+use strict;
+use warnings;
+
+use Cwd;
+use File::Basename;
+use Data::Dumper;
+use Getopt::Long;
+use POSIX qw(strftime);
+
+# Load the common functionality
+use lib dirname($0);
+use Cisco::usnic_releng_common;
+use Cisco::libusnic_verbs_noop;
+
+#--------------------------------------------------------------------------
+
+# Simplification for use below
+sub do_command {
+    Cisco::usnic_releng_common::do_command(@_);
+}
+
+sub read_mod_write {
+    Cisco::usnic_releng_common::read_mod_write(@_);
+}
+
+sub modify_file_contents {
+    Cisco::libusnic_verbs_noop::modify_file_contents(@_);
+}
+
+#--------------------------------------------------------------------------
+
+Cisco::libusnic_verbs_noop::sanity_check();
+
+my $data = Cisco::libusnic_verbs_noop::parse_argv();
+my $build_arg = $data->{build_arg};
+my $cisco_maintainer = $data->{maintainer};
+my $cisco_maintainer_email = $data->{maintainer_email};
+
+my $start_dir = getcwd();
+
+Cisco::libusnic_verbs_noop::update_git();
+
+my $version =
+    Cisco::libusnic_verbs_noop::update_configure_version($build_arg);
+
+my $prefix = "/";
+my $configure_args =
+    " --libdir=/usr/lib" .
+    " --libexecdir=/usr/lib";
+
+Cisco::libusnic_verbs_noop::modify_file_contents_setup($version,
+                                                       $cisco_maintainer,
+                                                       $cisco_maintainer_email,
+                                                       $configure_args);
+
+Cisco::libusnic_verbs_noop::make_tarball($version);
+
+#--------------------------------------------------------------------------
+
+# Apply local patches
+Cisco::usnic_releng_common::apply_local_patches("patches");
+
+#------------------------------------------------------------------------
+
+# Make a new tree to do the debian builds, and copy the perfect
+# tarball there (name it ".orig.", per Debian requirements.
+print "=== Setting up expected Debian directory structure...\n";
+do_command("rm -rf debian-build");
+mkdir("debian-build");
+do_command("cp libusnic_verbs-$version.tar.bz2 debian-build/libusnic-verbs_$version.orig.tar.bz2");
+chdir("debian-build");
+
+my $debian_buildtop = getcwd();
+
+# Expand the tarball, and copy the debian directory to the top-level
+# expanded tarball dir, per Debian requirements.
+do_command("tar xf libusnic-verbs_$version.orig.tar.bz2");
+do_command("mv libusnic_verbs-$version libusnic-verbs-$version-1");
+my $src_dir = "..";
+my $dest_dir = "libusnic-verbs-$version-1";
+do_command("cp -rp $src_dir/debian $dest_dir");
+
+# Replace @TOKENS@ in some of the debian/ files
+my $outdir = "$dest_dir/debian";
+foreach my $file (qw/control changelog rules/) {
+    read_mod_write("$outdir/$file", "$outdir/$file", \&modify_file_contents);
+}
+
+#------------------------------------------------------------------------
+
+# Make the debian source package
+print "=== Building deb source package\n";
+do_command("dpkg-source -b libusnic-verbs-$version-1");
+
+# Build the debian binary package
+print "=== Building deb binary package\n";
+chdir("libusnic-verbs-$version-1");
+do_command("dpkg-buildpackage -us -uc -j32");
+
+#------------------------------------------------------------------------
+
+# Success!
+print "=== Success\n";
+print "  = Files in $debian_buildtop:\n";
+chdir($debian_buildtop);
+system("ls -1 libusnic-verbs_$version*");
+
+# All done
+exit(0);

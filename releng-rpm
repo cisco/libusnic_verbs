@@ -1,0 +1,127 @@
+#!/usr/bin/env perl
+#
+# Cisco libfabric package builder script for release engineering
+#
+# This script makes RPMs, and understands the following OSs:
+# RHEL 6.x, 7.x
+# SLES 12.x
+#
+
+use strict;
+use warnings;
+
+use Cwd;
+use File::Basename;
+use Data::Dumper;
+use Getopt::Long;
+
+# Load the common functionality
+use lib dirname($0);
+use Cisco::usnic_releng_common;
+use Cisco::libusnic_verbs_noop;
+
+#--------------------------------------------------------------------------
+
+# Simplification for use below
+sub do_command {
+    Cisco::usnic_releng_common::do_command(@_);
+}
+
+#--------------------------------------------------------------------------
+
+Cisco::libusnic_verbs_noop::sanity_check();
+
+my $data = Cisco::libusnic_verbs_noop::parse_argv();
+my $build_arg = $data->{build_arg};
+
+my $start_dir = getcwd();
+
+Cisco::libusnic_verbs_noop::update_git();
+
+my $version =
+    Cisco::libusnic_verbs_noop::update_configure_version($build_arg);
+
+Cisco::libusnic_verbs_noop::make_tarball($version, "libusnic_verbs.spec.in");
+
+#--------------------------------------------------------------------------
+
+# Apply local patches
+Cisco::usnic_releng_common::apply_local_patches("../patches");
+
+#--------------------------------------------------------------------------
+
+# Don't let rpmbuild complain about rpaths.  rpmbuild on releng
+# machines seems to complain about rpaths to absolute directories that
+# don't exist during the rpmbuild process (!), such as
+# /opt/cisco/openmpi/lib.  This seems like a broken check, because
+# installing the RPM will create these directories.  It feels like
+# their check is targeted towards checking against library directories
+# that should already exists (e.g., /usr/lib).
+$ENV{QA_RPATHS} = "0xffff";
+
+#--------------------------------------------------------------------------
+
+# Make our own $HOME/.rpmmacros file.
+print "=== Creating RPMS:\n";
+print "*** Making $ENV{HOME}/.rpmmacros\n";
+
+# Make $rpmbuilddir tree if it doesn't already exist
+my $rpmbuilddir = "$start_dir/rpmbuild";
+do_command("rm -rf $rpmbuilddir");
+print "*** Making $rpmbuilddir tree\n";
+mkdir("$rpmbuilddir");
+mkdir("$rpmbuilddir/BUILD");
+mkdir("$rpmbuilddir/BUILDROOT");
+mkdir("$rpmbuilddir/RPMS");
+mkdir("$rpmbuilddir/SOURCES");
+mkdir("$rpmbuilddir/SPECS");
+mkdir("$rpmbuilddir/SRPMS");
+
+# Copy the files to the right places
+do_command("cp libusnic_verbs-$version.tar.bz2 $rpmbuilddir/SOURCES");
+do_command("cp libusnic_verbs.spec $rpmbuilddir/SPECS/libusnic_verbs.spec");
+
+#------------------------------------------------------------------------
+
+# Build the SRPM
+my $rpmbuild_options;
+print "  = Building SRPM\n";
+$rpmbuild_options =
+    '--define "_topdir ' . $rpmbuilddir . '" ' .
+    '--define "_vendorinfo Cisco Systems, Inc." ' .
+    '--define "_packager Cisco Systems, Inc." ' .
+    '--define "_distribution www.cisco.com"';
+
+do_command("rpmbuild $rpmbuild_options -bs $rpmbuilddir/SPECS/libusnic_verbs.spec",
+           "rpmbuild-bs");
+
+# Build the RPM
+print "  = Building RPM\n";
+do_command("rpmbuild $rpmbuild_options -bb $rpmbuilddir/SPECS/libusnic_verbs.spec",
+           "rpmbuild-bb");
+
+# Restore configure.ac
+chdir($start_dir);
+do_command("git checkout configure.ac");
+
+#------------------------------------------------------------------------
+
+# Success!
+print "=== Success:\n";
+my $tardir = $start_dir;
+print "  = Tarballs in $tardir:\n";
+chdir($tardir);
+system("ls -1 libusnic_verbs*$version*");
+
+my $srpmdir = "$rpmbuilddir/SRPMS";
+print "  = SRPM in $srpmdir:\n";
+chdir($srpmdir);
+system("ls -1 libusnic_verbs-$version-*.src.rpm");
+
+my $rpmdir = "$rpmbuilddir/RPMS/x86_64";
+print "  = RPMs in $rpmdir:\n";
+chdir($rpmdir);
+system("ls -1 libusnic_verbs*$version-*.rpm");
+
+# All done
+exit(0);
