@@ -27,83 +27,19 @@
 # SOFTWARE.
 
 SUBDIRS = src
-VPATH = $(srcdir)
 
 ACLOCAL_AMFLAGS = -I config
 
 AM_CFLAGS = -g -Wall -Wextra -D_GNU_SOURCE
 
-USNIC_WHOLE_VERSION=@USNIC_WHOLE_VERSION@
-RPM_RELEASE=@RPM_RELEASE@
-USNIC_VERSION=@USNIC_VERSION@
-USNIC_RELEASE=@USNIC_RELEASE@
-USNIC_REL_DATE=@USNIC_REL_DATE@
-USNIC_SVN_BRANCH=@USNIC_SVN_BRANCH@
-USNIC_SVN_REV=@USNIC_SVN_REV@
-
-EXTRA_DIST = \
-	libusnic_verbs.spec.in \
-	usnic.driver
-
-# This is a workaround for a bug in automake:
+# depcomp is listed as a workaround for a bug in automake:
 # http://debbugs.gnu.org/cgi/bugreport.cgi?bug=14594
-EXTRA_DIST += config/depcomp
-EXTRA_DIST += LICENSE
+EXTRA_DIST = \
+	VERSION \
+	LICENSE \
+	libusnic_verbs.spec.in \
+	usnic.driver \
+	config/depcomp
 
 usnicconfdir = $(sysconfdir)/libibverbs.d
 usnicconf_DATA = usnic.driver
-
-define gen_release_version
-	@echo "#Auto Generated - Do not edit" >> $(distdir)/RELEASE_VERSION
-	@echo "USNIC_VERSION=$(USNIC_VERSION)" >> $(distdir)/RELEASE_VERSION
-	@echo "USNIC_REL_DATE=$(USNIC_REL_DATE)" >> $(distdir)/RELEASE_VERSION
-	@echo "USNIC_SVN_BRANCH=$(USNIC_SVN_BRANCH)" >> \
-					$(distdir)/RELEASE_VERSION
-	@echo "USNIC_SVN_REV=$(USNIC_SVN_REV)" >> $(distdir)/RELEASE_VERSION
-	@echo "RPM_RELEASE=$(RPM_RELEASE)" >> $(distdir)/RELEASE_VERSION
-endef
-
-define insert_license
-	files=$$(find $(distdir) -type f); \
-	for file in $${files}; do \
-		sed -i \
-			-e '/^ \* \[Insert appropriate license here/r $(distdir)/LICENSE' \
-			-e '/^ \* \[Insert appropriate license here/d' $${file}; \
-	done
-	rm -rf $(distdir)/LICENSE
-endef
-
-dist-hook:
-	$(gen_release_version)
-	$(insert_license)
-
-libusnic_verbs_src_rpm = libusnic_verbs-${USNIC_WHOLE_VERSION}-${RPM_RELEASE}.src.rpm
-
-$(libusnic_verbs_src_rpm): dist
-	rpmbuild --define "_topdir $(abs_builddir)/rpmbuild" \
-	    --define "usnic_version ${USNIC_WHOLE_VERSION}" \
-	    --define "_sourcedir $(abs_builddir)" -bs libusnic_verbs.spec
-	mv rpmbuild/SRPMS/$(libusnic_verbs_src_rpm) .
-
-.PHONY: valgrind_rpm
-valgrind_rpm: $(libusnic_verbs_src_rpm)
-	rpmbuild --rebuild \
-	    --define "_topdir $(abs_builddir)/rpmbuild" \
-	    --define "usnic_release ${USNIC_RELEASE}" \
-	    --define "usnic_version ${USNIC_WHOLE_VERSION}" \
-		--define "valgrind $(VALGRIND_PATH)" \
-	    $(libusnic_verbs_src_rpm)
-
-.PHONY: releng
-releng: $(libusnic_verbs_src_rpm) $(VALGRIND_RPM)
-	rpmbuild --rebuild \
-	    --define "_topdir $(abs_builddir)/rpmbuild" \
-	    --define "usnic_release ${USNIC_RELEASE}" \
-	    --define "usnic_version ${USNIC_WHOLE_VERSION}" \
-	    $(libusnic_verbs_src_rpm)
-	mv rpmbuild/RPMS/$(ARCH)/* .
-
-clean-local: clean-local-check
-.PHONY: clean-local-check
-clean-local-check:
-	-rm -rf *.rpm rpmbuild *.tar.gz

@@ -37,32 +37,31 @@ Name: libusnic_verbs
 %{?usnic_version: %define version_a %{usnic_version}}
 %define srpm_version @USNIC_WHOLE_VERSION@
 
-# Enable valgrind?
-%define config_valgrind --without-valgrind
-%define version_b %{version_a}
-%{?valgrind: %define config_valgrind --with-valgrind=%valgrind}
-%{?valgrind: %define version_b %{version_a}_vg}
-
 Version: %{version_b}
 Release: @RPM_RELEASE@
 Vendor: Cisco Systems, Inc.
 
-Summary: Cisco Virtual NIC OpenFabrics Userspace Driver
+Summary: No-op libibverbs driver for the Cisco usNIC device (you should use libfabric instead)
 
 Group: System Environment/Libraries
 License: GPLv2 or BSD
 Url: http://cisco.com/
-Source: http://github.com/.../libusnic_verbs-@USNIC_WHOLE_VERSION@.tar.gz
+Source: libusnic_verbs-%{usnic_version}.tar.bz2
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}=%{release}-XXXXXX)
 
 BuildRequires: libibverbs-devel >= 1.1.5
 
 
 %description
-libusnic_verbs provides a device-specific userspace driver for Cisco
-Virtual NICs for use with the libibverbs library. This package also
-includes an usnic_udp_pingpong modified from ibv_ud_pingpong that works
-with libusnic_verbs.
+This is a dummy plugin for libibverbs for Cisco usNIC devices.
+
+It's only purpose in life is to prevent libibverbs from noticing /sys
+entries for Cisco usNIC devices and emitting a stderr warning that it
+cannot find a userspace plugin to support that device.
+
+Cisco does not support the userspace Verbs API for accessing its usNIC
+devices.  The Libfabric API is provided for accessing Cisco usNIC
+functionality (see http://libfabric.org/).
 
 %prep
 %setup -q -n %{name}-%{srpm_version}
@@ -84,13 +83,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_libdir}/libusnic_verbs-rdmav2.so
 %{_sysconfdir}/libibverbs.d/usnic.driver
-%{_bindir}/usnic_udp_pingpong
 %doc AUTHORS COPYING README KNOWN_ISSUES
 
 
 %changelog
-* Wed Mar 12 2014 Xuyang Wang <xuywang@cisco.com>
-- Added usnic_udp_pingpong
-
-* Tue Apr  9 2013 Jeff Squyres <jsquyres@cisco.com>
-- First release
+* Tue Oct 27 2015 Jeff Squyres <jsquyres@cisco.com>
+- First release of the dummy driver.
