@@ -27,7 +27,7 @@
 # SOFTWARE.
 
 AC_PREREQ(2.57)
-AC_INIT(libusnic_verbs, [2.0.0], [http://cisco.com/])
+AC_INIT([libusnic_verbs], [2.0.0], [http://cisco.com/])
 AC_CONFIG_SRCDIR([src/empty_usnic.c])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_HEADER(config.h)
