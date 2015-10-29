@@ -46,7 +46,7 @@ sub sanity_check {
         exit($ret);
     }
 
-    die "configure.ac is dirty; exiting"
+    do_command("git checkout configure.ac")
         if (`git status configure.ac --porcelain` ne "");
 }
 
