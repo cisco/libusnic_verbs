@@ -47,11 +47,11 @@ dnl SILENT_RULES is new in AM 1.11, but we require 1.11 or higher via
 dnl autogen.  Limited testing shows that calling SILENT_RULES directly
 dnl works in more cases than adding "silent-rules" to INIT_AUTOMAKE
 dnl (even though they're supposed to be identical).  Shrug.
-AM_SILENT_RULES([yes])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Checks for programs
 AC_PROG_CC_C99
-AM_PROG_AR
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 dnl This library is a plugin, so we'll never want the static library.
 LT_INIT([disable-static dlopen])
