@@ -1,0 +1,5 @@
+libusnic-verbs (@LIBUSNIC_VERBS_VERSION@) unstable; urgency=low
+
+  * Cisco dummy libusnic_verbs to prevent libibverbs from complaining about a missing userspace driver
+
+ -- @CISCO_MAINTAINER@ <@CISCO_MAINTAINER_EMAIL@>  @RELEASE_DATE@

@@ -1,0 +1,22 @@
+Source: libusnic-verbs
+Priority: optional
+Maintainer: @CISCO_MAINTAINER@ <@CISCO_MAINTAINER_EMAIL@>
+Build-Depends: debhelper (>= 9.0.0), autotools-dev, libibverbs-dev, make, quilt, dpkg-dev
+Standards-Version: 3.9.5
+Section: libs
+Homepage: http://cisco.com/
+
+Package: libusnic-verbs
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libibverbs1
+Description: libusnic-verbs
+ This is a dummy plugin for libibverbs for Cisco usNIC devices.
+ .
+ It's only purpose in life is to prevent libibverbs from noticing /sys
+ entries for Cisco usNIC devices and emitting a stderr warning that it
+ cannot find a userspace plugin to support that device.
+ .
+ Cisco does not support the userspace Verbs API for accessing its usNIC
+ devices.  The Libfabric API is provided for accessing Cisco usNIC
+ functionality (see http://libfabric.org/).
