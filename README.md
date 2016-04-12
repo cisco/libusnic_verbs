@@ -1,3 +1,5 @@
+[![libusnic_verbs release version](https://img.shields.io/github/release/cisco/libusnic_verbs.svg)](https://github.com/cisco/libusnic_verbs/releases/latest)
+
 This is a dummy plugin for libibverbs for Cisco usNIC devices.
 
 It's only purpose in life is to prevent libibverbs from noticing /sys
