@@ -36,7 +36,7 @@ AM_CFLAGS = -g -Wall -Wextra -D_GNU_SOURCE
 # http://debbugs.gnu.org/cgi/bugreport.cgi?bug=14594
 EXTRA_DIST = \
 	VERSION \
-	LICENSE \
+	COPYING \
 	libusnic_verbs.spec.in \
 	usnic.driver \
 	config/depcomp
