@@ -2,4 +2,4 @@
 
 # If set, use this specific Git ID for the release package
 # GIT_ID=blah
-GIT_ID=v2.0.1
+GIT_ID=v2.0.2
