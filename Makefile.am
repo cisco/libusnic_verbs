@@ -37,6 +37,7 @@ AM_CFLAGS = -g -Wall -Wextra -D_GNU_SOURCE
 EXTRA_DIST = \
 	VERSION \
 	COPYING \
+	README.md \
 	libusnic_verbs.spec.in \
 	usnic.driver \
 	config/depcomp
