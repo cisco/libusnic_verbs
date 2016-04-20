@@ -117,7 +117,7 @@ sub update_git {
 
     if (defined($git_id)) {
         print "=== Updating to Git ID $git_id\n";
-        do_command("git update $git_id");
+        do_command("git checkout $git_id");
     }
 }
 
