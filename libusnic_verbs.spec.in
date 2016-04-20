@@ -74,7 +74,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_libdir}/libusnic_verbs-rdmav2.so
 %{_sysconfdir}/libibverbs.d/usnic.driver
-%doc AUTHORS LICENSE README
+%doc AUTHORS COPYING README.md
 
 
 %changelog
