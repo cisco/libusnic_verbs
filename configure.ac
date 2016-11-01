@@ -28,7 +28,7 @@
 
 dnl Note that the version number in the line below will be edited
 dnl by the releng-scripts.
-m4_define(libusnic_verbs_version, [2.0.2])
+m4_define(libusnic_verbs_version, [2.0.3])
 
 AC_PREREQ(2.57)
 AC_INIT([libusnic_verbs], libusnic_verbs_version, [http://cisco.com/])
