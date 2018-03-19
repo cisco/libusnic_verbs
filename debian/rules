@@ -1,12 +1,19 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
+PACKAGE=libusnic-verbs
+DEST_DIR=$(CURDIR)/debian/$(PACKAGE)
+LIBUSNIC_VERBS_PKG_VERSION=@LIBUSNIC_VERBS_PKG_VERSION@
+
 # Make things verbose so that we can see what's going on
 export DH_VERBOSE=1
 export DH_OPTIONS=-v
 
 %:
 	dh $@  --with autotools-dev --parallel
+
+override_dh_gencontrol:
+	dh_gencontrol -- -v$(LIBUSNIC_VERBS_PKG_VERSION)
 
 # Add in our own configure arugments
 override_dh_auto_configure:

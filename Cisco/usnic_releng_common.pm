@@ -162,7 +162,7 @@ sub do_command {
 #--------------------------------------------------------------------------
 
 # Get the distro version.
-# Understands RHEL 6,7, SLES 12, and Ubuntu 14 LTS
+# Understands RHEL 6,7, SLES 12, and Ubuntu 14,16 LTS
 sub find_distro {
     my $distro;
     my $rhel_rel_path = "/etc/redhat-release";
@@ -182,7 +182,7 @@ sub find_distro {
         $distro = "sles${ver}sp${patchlevel}";
     }
 
-    # Ubuntu 14 LTS
+    # Ubuntu 14, 16 LTS
     elsif (-r $lsb_rel_path) {
         open(IN, $lsb_rel_path) ||
             die "Can't open $lsb_rel_path";
@@ -194,9 +194,12 @@ sub find_distro {
         }
         close(IN);
 
-        if ($lsb_fields->{'DISTRIB_ID'} eq "Ubuntu" ||
+        if ($lsb_fields->{'DISTRIB_ID'} eq "Ubuntu" &&
             $lsb_fields->{'DISTRIB_RELEASE'} eq "14.04") {
             $distro = "ubuntu1404lts";
+        } elsif ($lsb_fields->{'DISTRIB_ID'} eq "Ubuntu" &&
+            $lsb_fields->{'DISTRIB_RELEASE'} eq "16.04") {
+            $distro = "ubuntu1604lts";
         } else {
             die "*** Unknown Linux distro: $lsb_fields->{'DISTRIB_ID'} / $lsb_fields->{'DISTRIB_RELEASE'}";
         }
@@ -269,6 +272,24 @@ sub apply_local_patches {
         print "=== Applying local patch: $patch\n";
         do_command("git am $dir/$patch");
     }
+}
+
+#------------------------------------------------------------------------
+
+sub count_linux_processors {
+    # Count how many processors we have (that we can use for the
+    # parallel build).
+    open(IN, "/proc/cpuinfo") || die "Can't open /proc/cpuinfo";
+    my $proc_count = 0;
+    while (<IN>) {
+        chomp;
+        ++$proc_count
+            if ($_ =~ /^processor(\s+): \d+$/);
+    }
+    close(IN);
+
+    print "=== Counted $proc_count Linux processors (via /proc/cpuinfo)\n";
+    return $proc_count;
 }
 
 #------------------------------------------------------------------------

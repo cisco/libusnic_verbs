@@ -28,16 +28,16 @@
 
 Name: libusnic_verbs
 
-Version: @LIBUSNIC_VERBS_VERSION@
-Release: 1
+Version: @LIBUSNIC_VERBS_PKG_VERSION@
+Release: @LIBUSNIC_VERBS_PKG_RELEASE@
 Vendor: Cisco Systems, Inc.
 
 Summary: No-op libibverbs driver for the Cisco usNIC device (you should use libfabric instead)
 
 Group: System Environment/Libraries
 License: GPLv2 or BSD
-Url: http://cisco.com/
-Source: libusnic_verbs-%{version}.tar.bz2
+Url: https://cisco.com/
+Source: libusnic_verbs-@LIBUSNIC_VERBS_SRC_VERSION@.tar.bz2
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}=%{release}-XXXXXX)
 
 BuildRequires: libibverbs-devel >= 1.1.5
@@ -55,7 +55,7 @@ devices.  The Libfabric API is provided for accessing Cisco usNIC
 functionality (see http://libfabric.org/).
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{name}-@LIBUSNIC_VERBS_SRC_VERSION@
 
 %build
 %configure

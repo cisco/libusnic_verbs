@@ -28,20 +28,27 @@
 
 dnl Note that the version number in the line below will be edited
 dnl by the releng-scripts.
-m4_define(libusnic_verbs_version, [2.0.3])
+m4_define(libusnic_verbs_version,
+          m4_normalize(esyscmd([./version.sh --version])))
 
 AC_PREREQ(2.57)
-AC_INIT([libusnic_verbs], libusnic_verbs_version, [http://cisco.com/])
+AC_INIT([libusnic_verbs], libusnic_verbs_version, [https://cisco.com/])
 AC_CONFIG_SRCDIR([src/empty_usnic.c])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_HEADER(config.h)
 
-AM_INIT_AUTOMAKE([-Wall foreign no-define 1.11 subdir-objects dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall foreign no-define 1.11 subdir-objects no-dist-gzip dist-bzip2])
 
 AC_CONFIG_MACRO_DIR([config])
 
-LIBUSNIC_VERBS_VERSION="libusnic_verbs_version"
-AC_SUBST(LIBUSNIC_VERBS_VERSION)
+# Get the distro name
+DISTRO=`perl $srcdir/config/find_distro.pl`
+LIBUSNIC_VERBS_SRC_VERSION="libusnic_verbs_version"
+LIBUSNIC_VERBS_PKG_VERSION="$LIBUSNIC_VERBS_SRC_VERSION.$DISTRO"
+LIBUSNIC_VERBS_PKG_RELEASE=`$srcdir/version.sh --build-id`
+AC_SUBST(LIBUSNIC_VERBS_SRC_VERSION)
+AC_SUBST(LIBUSNIC_VERBS_PKG_VERSION)
+AC_SUBST(LIBUSNIC_VERBS_PKG_RELEASE)
 
 dnl SILENT_RULES is new in AM 1.11, but we require 1.11 or higher via
 dnl autogen.  Limited testing shows that calling SILENT_RULES directly

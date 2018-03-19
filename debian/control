@@ -4,7 +4,7 @@ Maintainer: @CISCO_MAINTAINER@ <@CISCO_MAINTAINER_EMAIL@>
 Build-Depends: debhelper (>= 9.0.0), autotools-dev, libibverbs-dev, make, quilt, dpkg-dev
 Standards-Version: 3.9.5
 Section: libs
-Homepage: http://cisco.com/
+Homepage: https://cisco.com/
 
 Package: libusnic-verbs
 Section: libs

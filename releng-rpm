@@ -32,16 +32,19 @@ sub do_command {
 Cisco::libusnic_verbs_noop::sanity_check();
 
 my $data = Cisco::libusnic_verbs_noop::parse_argv();
-my $build_arg = $data->{build_arg};
 
 my $start_dir = getcwd();
 
-Cisco::libusnic_verbs_noop::update_git();
+# Values from files
+my $git_id = Cisco::libusnic_verbs_noop::read_upstream_version("UPSTREAM_VERSION");
+my ($cisco_version, $cisco_build_id) =
+    Cisco::libusnic_verbs_noop::read_cisco_version("version.sh");
+my $distro = Cisco::usnic_releng_common::find_distro();
 
-my $version =
-    Cisco::libusnic_verbs_noop::update_configure_version($build_arg);
+Cisco::libusnic_verbs_noop::update_git($git_id);
 
-Cisco::libusnic_verbs_noop::make_tarball($version, "libusnic_verbs.spec.in");
+Cisco::libusnic_verbs_noop::make_tarball($cisco_version,
+                                         "libusnic_verbs.spec.in");
 
 #--------------------------------------------------------------------------
 
@@ -78,7 +81,7 @@ mkdir("$rpmbuilddir/SPECS");
 mkdir("$rpmbuilddir/SRPMS");
 
 # Copy the files to the right places
-do_command("cp libusnic_verbs-$version.tar.bz2 $rpmbuilddir/SOURCES");
+do_command("cp libusnic_verbs-$cisco_version.tar.bz2 $rpmbuilddir/SOURCES");
 do_command("cp libusnic_verbs.spec $rpmbuilddir/SPECS/libusnic_verbs.spec");
 
 #------------------------------------------------------------------------
@@ -111,17 +114,17 @@ print "=== Success:\n";
 my $tardir = $start_dir;
 print "  = Tarballs in $tardir:\n";
 chdir($tardir);
-system("ls -1 libusnic_verbs*$version*");
+system("ls -1 libusnic_verbs*$cisco_version*");
 
 my $srpmdir = "$rpmbuilddir/SRPMS";
 print "  = SRPM in $srpmdir:\n";
 chdir($srpmdir);
-system("ls -1 libusnic_verbs-$version-*.src.rpm");
+system("ls -1 libusnic_verbs-$cisco_version*.src.rpm");
 
 my $rpmdir = "$rpmbuilddir/RPMS/x86_64";
 print "  = RPMs in $rpmdir:\n";
 chdir($rpmdir);
-system("ls -1 libusnic_verbs*$version-*.rpm");
+system("ls -1 libusnic_verbs*$cisco_version*.rpm");
 
 # All done
 exit(0);

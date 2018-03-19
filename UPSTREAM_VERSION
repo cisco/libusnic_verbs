@@ -1,0 +1,2 @@
+# Git hash/tag to check out from upstream libfabric git repo
+GIT_ID=HEAD
