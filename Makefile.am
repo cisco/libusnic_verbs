@@ -35,11 +35,13 @@ AM_CFLAGS = -g -Wall -Wextra -D_GNU_SOURCE
 # depcomp is listed as a workaround for a bug in automake:
 # http://debbugs.gnu.org/cgi/bugreport.cgi?bug=14594
 EXTRA_DIST = \
-	VERSION \
+	version.sh \
+	UPSTREAM_VERSION \
 	COPYING \
 	README.md \
 	libusnic_verbs.spec.in \
 	usnic.driver \
+        config/find_distro.pl \
 	config/depcomp
 
 usnicconfdir = $(sysconfdir)/libibverbs.d

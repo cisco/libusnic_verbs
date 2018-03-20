@@ -1,4 +1,4 @@
-libusnic-verbs (@LIBUSNIC_VERBS_VERSION@) unstable; urgency=low
+libusnic-verbs (@LIBUSNIC_VERBS_PKG_VERSION@) unstable; urgency=low
 
   * Cisco dummy libusnic_verbs to prevent libibverbs from complaining about a missing userspace driver
 

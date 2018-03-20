@@ -32,8 +32,11 @@ sub sanity_check {
     # Sanity checks
     die "Must be run from the top-level libusnic_verbs_noop-releng directory"
         if (! -d "Cisco" || ! -f "Cisco/usnic_releng_common.pm");
-    my $cisco_version_file = "VERSION";
-    die "Can't find Cisco VERSION file"
+    my $upstream_version_file = "UPSTREAM_VERSION";
+    die "Can't find $upstream_version_file file"
+        if (! -r $upstream_version_file);
+    my $cisco_version_file = "version.sh";
+    die "Can't find Cisco $cisco_version_file file"
         if (! -r $cisco_version_file);
 
     # Ensure we don't have any whacky version of gcc in the path.
@@ -45,9 +48,6 @@ sub sanity_check {
                          join(' ', @argv_save));
         exit($ret);
     }
-
-    do_command("git checkout configure.ac")
-        if (`git status configure.ac --porcelain` ne "");
 }
 
 #--------------------------------------------------------------------------
@@ -58,12 +58,10 @@ my $cisco_maintainer_arg = "Jeff Squyres";
 my $cisco_maintainer_email_arg = "jsquyres\@cisco.com";
 
 sub parse_argv {
-    my $build_arg;
     my $help_arg;
 
     &Getopt::Long::Configure("bundling");
-    my $ok = Getopt::Long::GetOptions("build=s" => \$build_arg,
-                                      "maintainer=s" => \$cisco_maintainer_arg,
+    my $ok = Getopt::Long::GetOptions("maintainer=s" => \$cisco_maintainer_arg,
                                       "maintainer-email=s" => \$cisco_maintainer_email_arg,
                                       "logfile-dir=s" => \$logfile_dir_arg,
                                       "debug!" => \$debug_arg,
@@ -72,9 +70,8 @@ sub parse_argv {
     $help_arg = 1
         if (!$ok);
     if ($help_arg) {
-        print "$0 --build=BUILD_ID [--logfile-dir=DIR|--git-repo-url=URL|--debug|--help]
+        print "$0 [--logfile-dir=DIR|--git-repo-url=URL|--debug|--help]
 
---build=BUILD_ID   Sets the build ID
 --logfile-dir=DIR  Directory to write various logfiles
 --git-repo-url=URL URL of the git repo to clone
 --debug            Shows the commands being run, and their output
@@ -82,16 +79,10 @@ sub parse_argv {
         exit($ok);
     }
 
-    if (!defined($build_arg)) {
-        print "ERROR: Must supply a --build argument\n";
-        exit(1);
-    }
-
     # Setup the helpers with the CLI args
     Cisco::usnic_releng_common::init($debug_arg, $logfile_dir_arg);
 
     my $ret = {
-        build_arg => $build_arg,
         maintainer => $cisco_maintainer_arg,
         maintainer_email => $cisco_maintainer_email_arg,
     };
@@ -101,64 +92,50 @@ sub parse_argv {
 #--------------------------------------------------------------------------
 
 sub update_git {
-    # Read meta data from VERSION
-    open(IN, "VERSION")
-        || die "Can't open VERSION";
-    my $git_id;
+    my $git_id = shift;
+    do_command("git checkout $git_id");
+}
+
+#--------------------------------------------------------------------------
+
+sub read_upstream_version {
+    my $upstream_version_file = shift;
+
+    # Read meta data from $upstream_version_file
+    open(IN, $upstream_version_file)
+        || die "Can't open $upstream_version_file";
+    my $upstream_git_id;
     while (<IN>) {
         # Skip comments
         next
             if (/^\s*#/);
 
         # Look for "GIT_ID=<id>"
-        $git_id = $1
+        $upstream_git_id = $1
             if (m/\s*GIT_ID\s*=\s*(.+)\n/);
     }
 
-    if (defined($git_id)) {
-        print "=== Updating to Git ID $git_id\n";
-        do_command("git checkout $git_id");
-    }
+    die "Couldn't find GIT_ID in $upstream_version_file"
+        if (!defined($upstream_git_id));
+    print "=== Found upstream git ID in $upstream_version_file: $upstream_git_id\n";
+
+    return $upstream_git_id;
 }
 
-#--------------------------------------------------------------------------
+sub read_cisco_version {
+    my $cisco_version_file = shift;
 
-sub update_configure_version {
-    my $build_arg = shift;
+    die "Can't run ./$cisco_version_file"
+        if (! -x $cisco_version_file);
 
-    print "=== Build number: $build_arg\n";
+    my $cisco_version = `./$cisco_version_file --version`;
+    chomp($cisco_version);
+    my $cisco_build_id = `./$cisco_version_file --build-id`;
+    chomp($cisco_build_id);
 
-    # Get the distro + version
-    my $distro = Cisco::usnic_releng_common::find_distro();
-    print "=== Found distro: $distro\n";
+    print "=== Found Cisco version: $cisco_version, build ID: $cisco_build_id\n";
 
-    # Get this package version from configure.ac
-    open(IN, "configure.ac") || die "Can't open git-cloned configure.ac";
-    my $configure_ac;
-    $configure_ac .= $_
-        while (<IN>);
-    close(IN);
-
-    $configure_ac =~ m/m4_define\(libusnic_verbs_version,\s*\[(.+)\]\)/ ||
-        die "Unable to find version number in configure.ac";
-    my $version = $1;
-    print "=== Found configure.ac version: $version\n";
-
-    # Add in the build number and the distro
-    my $new_version .= "$version.$build_arg.$distro";
-    print "=== Updating configure.ac version to: $new_version\n";
-
-    $configure_ac =~ s/(m4_define\(libusnic_verbs_version,\s*\[)(.+)\)/$1$new_version]\)/ ||
-        die "Unable to modify version in configure.ac";
-
-    # Write out the new configure.ac
-    $version = $new_version;
-    print "=== Re-writing configure.ac with Cisco version: $version\n";
-    open(OUT, ">configure.ac") || die "Can't write to configure.ac";
-    print OUT $configure_ac;
-    close(OUT);
-
-    return $version;
+    return $cisco_version, $cisco_build_id;
 }
 
 #--------------------------------------------------------------------------
@@ -190,13 +167,17 @@ sub make_tarball {
 
 #------------------------------------------------------------------------
 
-my $version;
+my $src_version;
+my $pkg_version;
+my $pkg_release;
 my $cisco_maintainer;
 my $cisco_maintainer_email;
 my $configure_args;
 
 sub modify_file_contents_setup {
-    $version = shift;
+    $src_version = shift;
+    $pkg_version = shift;
+    $pkg_release = shift;
     $cisco_maintainer = shift;
     $cisco_maintainer_email = shift;
     $configure_args = shift;
@@ -207,7 +188,9 @@ sub modify_file_contents {
 
     my $release_date = strftime("%a, %d %b %Y %H:%M:%S %z", @timestamp);
 
-    $contents =~ s/\@LIBUSNIC_VERBS_VERSION\@/$version/g;
+    $contents =~ s/\@LIBUSNIC_VERBS_SRC_VERSION\@/$src_version/g;
+    $contents =~ s/\@LIBUSNIC_VERBS_PKG_VERSION\@/$pkg_version/g;
+    $contents =~ s/\@LIBUSNIC_VERBS_PKG_RELEASE\@/$pkg_release/g;
     $contents =~ s/\@RELEASE_DATE\@/$release_date/g;
     $contents =~ s/\@CONFIGURE_ARGS\@/$configure_args/g;
 

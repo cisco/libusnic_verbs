@@ -1,5 +1,0 @@
-# Copyright (c) 2015 Cisco Systems, Inc.  All rights reserved.
-
-# If set, use this specific Git ID for the release package.
-# A few commits beyond 2.0.2, with some Cisco releng fixes
-GIT_ID=v2.0.3

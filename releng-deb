@@ -40,28 +40,34 @@ sub modify_file_contents {
 Cisco::libusnic_verbs_noop::sanity_check();
 
 my $data = Cisco::libusnic_verbs_noop::parse_argv();
-my $build_arg = $data->{build_arg};
 my $cisco_maintainer = $data->{maintainer};
 my $cisco_maintainer_email = $data->{maintainer_email};
 
 my $start_dir = getcwd();
 
-Cisco::libusnic_verbs_noop::update_git();
+# Values from files
+my $git_id = Cisco::libusnic_verbs_noop::read_upstream_version("UPSTREAM_VERSION");
+my ($src_version, $cisco_build_id) =
+    Cisco::libusnic_verbs_noop::read_cisco_version("version.sh");
+my $distro = Cisco::usnic_releng_common::find_distro();
 
-my $version =
-    Cisco::libusnic_verbs_noop::update_configure_version($build_arg);
+Cisco::libusnic_verbs_noop::update_git($git_id);
 
 my $prefix = "/";
 my $configure_args =
     " --libdir=/usr/lib" .
     " --libexecdir=/usr/lib";
+my $pkg_version = "$src_version-$cisco_build_id.$distro";
+my $pkg_release = $cisco_build_id;
 
-Cisco::libusnic_verbs_noop::modify_file_contents_setup($version,
+Cisco::libusnic_verbs_noop::modify_file_contents_setup($src_version,
+						       $pkg_version,
+						       $pkg_release,
                                                        $cisco_maintainer,
                                                        $cisco_maintainer_email,
                                                        $configure_args);
 
-Cisco::libusnic_verbs_noop::make_tarball($version);
+Cisco::libusnic_verbs_noop::make_tarball($src_version);
 
 #--------------------------------------------------------------------------
 
@@ -75,17 +81,17 @@ Cisco::usnic_releng_common::apply_local_patches("patches");
 print "=== Setting up expected Debian directory structure...\n";
 do_command("rm -rf debian-build");
 mkdir("debian-build");
-do_command("cp libusnic_verbs-$version.tar.bz2 debian-build/libusnic-verbs_$version.orig.tar.bz2");
+do_command("cp libusnic_verbs-$src_version.tar.bz2 debian-build/libusnic-verbs_$src_version.orig.tar.bz2");
 chdir("debian-build");
 
 my $debian_buildtop = getcwd();
 
 # Expand the tarball, and copy the debian directory to the top-level
 # expanded tarball dir, per Debian requirements.
-do_command("tar xf libusnic-verbs_$version.orig.tar.bz2");
-do_command("mv libusnic_verbs-$version libusnic-verbs-$version-1");
+do_command("tar xf libusnic-verbs_$src_version.orig.tar.bz2");
+do_command("mv libusnic_verbs-$src_version libusnic-verbs-$src_version-1");
 my $src_dir = "..";
-my $dest_dir = "libusnic-verbs-$version-1";
+my $dest_dir = "libusnic-verbs-$src_version-1";
 do_command("cp -rp $src_dir/debian $dest_dir");
 
 # Replace @TOKENS@ in some of the debian/ files
@@ -98,11 +104,11 @@ foreach my $file (qw/control changelog rules/) {
 
 # Make the debian source package
 print "=== Building deb source package\n";
-do_command("dpkg-source -b libusnic-verbs-$version-1");
+do_command("dpkg-source -b libusnic-verbs-$src_version-1");
 
 # Build the debian binary package
 print "=== Building deb binary package\n";
-chdir("libusnic-verbs-$version-1");
+chdir("libusnic-verbs-$src_version-1");
 do_command("dpkg-buildpackage -us -uc -j32");
 
 #------------------------------------------------------------------------
@@ -111,7 +117,7 @@ do_command("dpkg-buildpackage -us -uc -j32");
 print "=== Success\n";
 print "  = Files in $debian_buildtop:\n";
 chdir($debian_buildtop);
-system("ls -1 libusnic-verbs_$version*");
+system("ls -1 libusnic-verbs_$src_version*");
 
 # All done
 exit(0);

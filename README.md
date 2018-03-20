@@ -20,9 +20,9 @@ Tarballs are available for download from https://github.com/cisco/libusnic_verbs
 
 -----
 
-The intent for this package is  to install the usnic libibverbs plugin
+The intent for this package is to install the usnic libibverbs plugin
 in the same location as all other libibverbs plugins, and also install
-the `usnic.driver`  meta data text  file in  the same location  as all
+the `usnic.driver` meta data text file in the same location as all
 ther other libibverbs meta data text files.
 
 For example, here's the correct `configure` line to build this package
