@@ -162,51 +162,71 @@ sub do_command {
 #--------------------------------------------------------------------------
 
 # Get the distro version.
-# Understands RHEL 6,7, SLES 12, and Ubuntu 14,16 LTS
+# A specific set of distros are understood; see the code below.
 sub find_distro {
     my $distro;
-    my $rhel_rel_path = "/etc/redhat-release";
-    my $sles_rel_path = "/etc/SuSE-release";
-    my $lsb_rel_path = "/etc/lsb-release";
+    my $os_rel_path = "/etc/os-release";
+    my $found = 0;
 
-    # RHEL 6, 7
-    if (-r $rhel_rel_path) {
-        $distro = `cat $rhel_rel_path | cut -d " " -f 7 | sed "s/^/rhel/" | sed "s/\\\./u/"`;
-    }
-
-    # SLES 12
-    elsif (-r $sles_rel_path) {
-        my $ver = `cat $sles_rel_path | grep "^VERSION" | tr -d " " | cut -d "=" -f 2`;
-        chomp($ver);
-        my $patchlevel = `cat $sles_rel_path | grep "^PATCHLEVEL" | tr -d " " | cut -d "=" -f 2`;
-        $distro = "sles${ver}sp${patchlevel}";
-    }
-
-    # Ubuntu 14, 16 LTS
-    elsif (-r $lsb_rel_path) {
-        open(IN, $lsb_rel_path) ||
-            die "Can't open $lsb_rel_path";
-        my $lsb_fields;
+    # Generic distro.  This is the most portable / modern (as of June
+    # 2018).
+    if (-r $os_rel_path) {
+        # Read the file and save the values in a hash
+        open(IN, $os_rel_path) ||
+            die "Can't open $os_rel_path";
+        my $os_fields;
         while (<IN>) {
             chomp;
-            my ($field, $value) = split('=', $_);
-            $lsb_fields->{$field} = $value;
+            if ($_ ne "") {
+                my ($field, $value) = split('=', $_);
+                $value = $1
+                    if ($value =~ m/^"(.+)"$/);
+                $os_fields->{$field} = $value;
+            }
         }
         close(IN);
 
-        if ($lsb_fields->{'DISTRIB_ID'} eq "Ubuntu" &&
-            $lsb_fields->{'DISTRIB_RELEASE'} eq "14.04") {
-            $distro = "ubuntu1404lts";
-        } elsif ($lsb_fields->{'DISTRIB_ID'} eq "Ubuntu" &&
-            $lsb_fields->{'DISTRIB_RELEASE'} eq "16.04") {
-            $distro = "ubuntu1604lts";
-        } else {
-            die "*** Unknown Linux distro: $lsb_fields->{'DISTRIB_ID'} / $lsb_fields->{'DISTRIB_RELEASE'}";
+        # RHEL 8.x
+        # RHEL 7.x
+        # (RHEL 6.x does not have /etc/os-release)
+        if ($os_fields->{'NAME'} =~ 'Red Hat Enterprise Linux') {
+            # Convert "X.Y" to "XuY"
+            if ($os_fields->{'VERSION_ID'} =~ m/^([78])\.(\d+)$/) {
+                $distro = "rhel$1u$2";
+            }
+        }
+
+        # SLES 12,15 (including SPs)
+        elsif ($os_fields->{'NAME'} eq 'SLES') {
+            # Might find "X" or "X.Y"
+            # Convert "X.Y" into "XspY"
+            if ($os_fields->{'VERSION_ID'} =~ m/^(1[25])$/) {
+                $distro = "sles$1";
+            } elsif ($os_fields->{'VERSION_ID'} =~ m/^(1[25])\.(\d+)$/) {
+                $distro = "sles$1sp$2";
+            }
+        }
+
+        # Ubuntu 14,16,18,20 LTS
+        elsif ($os_fields->{'NAME'} eq 'Ubuntu') {
+            # Remove the ".": 14.04 -> "1404"
+            if ($os_fields->{'VERSION_ID'} =~ m/(1[468])\.04/) {
+                $distro = "ubuntu$1" . "04lts";
+            } elsif ($os_fields->{'VERSION_ID'} =~ m/20\.04/) {
+                $distro = "ubuntu2004lts";
+            }
         }
     }
 
+    # Old / distro-specific methods.
+    # RHEL 6
+    my $rhel_rel_path = "/etc/redhat-release";
+    if (!defined($distro) && -r $rhel_rel_path) {
+        $distro = `cat $rhel_rel_path | cut -d " " -f 7 | sed "s/^/rhel/" | sed "s/\\\./u/"`;
+    }
+
     # Shrug
-    else {
+    if (!defined($distro)) {
         die "*** Unknown Linux distro -- aborting build";
     }
 
@@ -273,6 +293,8 @@ sub apply_local_patches {
         do_command("git am $dir/$patch");
     }
 }
+
+#------------------------------------------------------------------------
 
 #------------------------------------------------------------------------
 
